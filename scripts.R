@@ -440,3 +440,63 @@ kpPlotMarkers(kp, top.genes, labels = names(top.genes), text.orientation = "hori
 gene.mean <- start(top.genes) + (end(top.genes) - start(top.genes))/2
 
 kpSegments(kp, chr = as.character(seqnames(top.genes)), x0 = gene.mean, x1 = gene.mean, y0 = top.genes$log2FoldChange, y1 = fc.ymax, ymax = fc.ymax, ymin = fc.ymin, r1 = points.top)
+
+
+#use only the list of genes mike gave:
+#MET, PDGFRA/KIT, CDKN2A/B, CCND1, CDK4, MYCN, TERT, ATRX, TSC1, TSC2, EGFR, TP53, ATM, NF1, RB1, CCND2, MDM2, MDM4, KRAS, PIK3CA, IGF1R, FGFR1, FGFR2, AKT1, PTEN, EZH2, CIC, SMARCA4, SMARCB1, IGF2, DROSHA, CDK4, CDK6, BCOR
+
+list.of.genes <- c(c("MET",
+                     "PDGFRA",
+                     "KIT",
+                     "CDKN2A",
+                     "CDKN2B",
+                     "CCND1",
+                     "CDK4",
+                     "MYCN",
+                     "TERT",
+                     "ATRX",
+                     "TSC1",
+                     "TSC2",
+                     "EGFR",
+                     "TP53",
+                     "ATM",
+                     "NF1",
+                     "RB1", 
+                     "CCND2",
+                     "MDM2",
+                     "MDM4",
+                     "KRAS",
+                     "PIK3CA",
+                     "IGF1R",
+                     "FGFR1",
+                     "FGFR2",
+                     "AKT1",
+                     "PTEN",
+                     "EZH2",
+                     "CIC",
+                     "SMARCA4",
+                     "SMARCB1",
+                     "IGF2",
+                     "DROSHA",
+                     "CDK4",
+                     "CDK6",
+                     "BCOR"))
+
+
+#this works!!
+subset(gr.ichor.overlaps, names(gr.ichor.overlaps) %in% list.of.genes)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
