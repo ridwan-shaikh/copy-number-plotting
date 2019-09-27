@@ -41,8 +41,8 @@ mcols(gr.geneCN.overlaps) <- cbind.data.frame(
 )
 
 #get gains and losses and a genomicrange object
-gr.geneCN.markers.losses <- gr.geneCN.overlaps[gr.geneCN.overlaps$seg.mean < -0.5]
-gr.geneCN.markers.gains <- gr.geneCN.overlaps[gr.geneCN.overlaps$seg.mean > 2.4]
+gr.geneCN.markers.losses <- gr.geneCN.overlaps[gr.geneCN.overlaps$seg.mean < -0.5 & names(gr.geneCN.overlaps) != "other"]
+gr.geneCN.markers.gains <- gr.geneCN.overlaps[gr.geneCN.overlaps$seg.mean > 2.4 & names(gr.geneCN.overlaps) != "other"]
 
 #compress to have one one gene name
 gr.geneCN.markers.losses <- unlist(range(split(gr.geneCN.markers.losses, ~names(gr.geneCN.markers.losses))))
@@ -75,6 +75,46 @@ mcols(gr.ichor.overlaps) <- cbind.data.frame(
   mcols(gr.ichor.overlaps),
   mcols(gr.ichorCNA[subjectHits(ichor.overlaps)])
 )
+
+#list of known oncogenes for the lcWGS plots
+list.of.genes <- c("MET",
+                   "PDGFRA",
+                   "KIT",
+                   "CDKN2A",
+                   "CDKN2B",
+                   "CCND1",
+                   "CDK4",
+                   "MYCN",
+                   "TERT",
+                   "ATRX",
+                   "TSC1",
+                   "TSC2",
+                   "EGFR",
+                   "TP53",
+                   "ATM",
+                   "NF1",
+                   "RB1",
+                   "CCND2",
+                   "MDM2",
+                   "MDM4",
+                   "KRAS",
+                   "PIK3CA",
+                   "IGF1R",
+                   "FGFR1",
+                   "FGFR2",
+                   "AKT1",
+                   "PTEN",
+                   "EZH2",
+                   "CIC",
+                   "SMARCA4",
+                   "SMARCB1",
+                   "IGF2",
+                   "DROSHA",
+                   "CDK4",
+                   "CDK6",
+                   "BCOR")
+
+gr.ichor.markers <- subset(gr.ichor.overlaps, names(gr.ichor.overlaps) %in% list.of.genes)
 
 ##Plotting
 #set the plotting parameters for karyoploteR
@@ -262,10 +302,10 @@ if (length(gr.ichorCNA[gr.ichorCNA$corrected.call == "GAIN"]) > 0) {
            col="#009e74") ##009e74 = green
 }
 
-if (length(unique(gr.ichor.overlaps[gr.ichor.overlaps$corrected.call == "HETD"])) > 0) {
+if (length(unique(gr.ichor.markers[gr.ichor.markers$corrected.call == "HETD"])) > 0) {
   kpPlotMarkers(kp,
-                data = unique(gr.ichor.overlaps[gr.ichor.overlaps$corrected.call == "HETD"]),
-                labels = unique(names(gr.ichor.overlaps[gr.ichor.overlaps$corrected.call == "HETD"])),
+                data = unique(gr.ichor.markers[gr.ichor.markers$corrected.call == "HETD"]),
+                labels = unique(names(gr.ichor.markers[gr.ichor.markers$corrected.call == "HETD"])),
                 text.orientation = "vertical",
                 data.panel = 2,
                 cex = 0.5,
@@ -275,10 +315,10 @@ if (length(unique(gr.ichor.overlaps[gr.ichor.overlaps$corrected.call == "HETD"])
                 label.color = "#ff0000")
 }
 
-if (length(unique(gr.ichor.overlaps[gr.ichor.overlaps$corrected.call == "HOMD"])) > 0) {
+if (length(unique(gr.ichor.markers[gr.ichor.markers$corrected.call == "HOMD"])) > 0) {
   kpPlotMarkers(kp,
-                data = unique(gr.ichor.overlaps[gr.ichor.overlaps$corrected.call == "HOMD"]),
-                labels = unique(names(gr.ichor.overlaps[gr.ichor.overlaps$corrected.call == "HOMD"])),
+                data = unique(gr.ichor.markers[gr.ichor.markers$corrected.call == "HOMD"]),
+                labels = unique(names(gr.ichor.markers[gr.ichor.markers$corrected.call == "HOMD"])),
                 text.orientation = "vertical",
                 data.panel = 2,
                 cex = 0.5,
@@ -288,10 +328,10 @@ if (length(unique(gr.ichor.overlaps[gr.ichor.overlaps$corrected.call == "HOMD"])
                 label.color = "#ff0000")
 }
 
-if (length(unique(gr.ichor.overlaps[gr.ichor.overlaps$corrected.call == "AMP"])) > 0) {
+if (length(unique(gr.ichor.markers[gr.ichor.markers$corrected.call == "AMP"])) > 0) {
   kpPlotMarkers(kp,
-                data = unique(gr.ichor.overlaps[gr.ichor.overlaps$corrected.call == "AMP"]),
-                labels = unique(names(gr.ichor.overlaps[gr.ichor.overlaps$corrected.call == "AMP"])),
+                data = unique(gr.ichor.markers[gr.ichor.markers$corrected.call == "AMP"]),
+                labels = unique(names(gr.ichor.markers[gr.ichor.markers$corrected.call == "AMP"])),
                 text.orientation = "vertical",
                 data.panel = 2,
                 cex = 0.5,
@@ -301,10 +341,10 @@ if (length(unique(gr.ichor.overlaps[gr.ichor.overlaps$corrected.call == "AMP"]))
                 label.color = "#009e74")
 }
 
-if (length(unique(gr.ichor.overlaps[gr.ichor.overlaps$corrected.call == "GAIN"])) > 0) {
+if (length(unique(gr.ichor.markers[gr.ichor.markers$corrected.call == "GAIN"])) > 0) {
   kpPlotMarkers(kp,
-                data = unique(gr.ichor.overlaps[gr.ichor.overlaps$corrected.call == "GAIN"]),
-                labels = names(gr.ichor.overlaps[gr.ichor.overlaps$corrected.call == "GAIN"]),
+                data = unique(gr.ichor.markers[gr.ichor.markers$corrected.call == "GAIN"]),
+                labels = names(gr.ichor.markers[gr.ichor.markers$corrected.call == "GAIN"]),
                 text.orientation = "vertical",
                 data.panel = 2,
                 cex = 0.5,
