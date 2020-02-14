@@ -24,6 +24,7 @@ library(GenomicRanges)
 library(gtools)
 library(ggplot2)
 library(plotly)
+library(tidyverse)
 
 
 option_list <- list(
@@ -49,10 +50,9 @@ outputfile=paste('/', cnvdir, '/', sampid, '.cnv.csv', sep='')
 outputhtml=paste('/', cnvdir, '/', sampid, '.cnv.html', sep='')
 
 
-#sampid <- "1910735-2070954-T"
-#sampid <- "1808530-UK0542WC-T"
-#tumour_file <-"/Volumes/DATA/DMP/DUDMP/TRANSGEN/transgen-mdx/001.reports/Pool_1133/Stats/1907024-SMP0012-T.qc.coverage"
-#ref_file<-"/Volumes/DATA/DMP/DUDMP/TRANSGEN/lchen/Projects/RMH200pipeline_paper/PAED/PAED.ref.csv"
+sampid <- "2000520-2076608-T"
+tumour_file <-"2000520-2076608-T.qc.coverage"
+ref_file<-"RMH200.male.cnv.ref"
 
 
 tumour_depth=read.table(tumour_file,header=T,sep='\t', stringsAsFactors =F, check.names=F, na.strings = "NA")
@@ -68,7 +68,37 @@ data$nratio=data$normalized_coverage/data$median
 fit=loess(nratio ~ gc, data=data)
 bias=predict(fit, data.frame(gc=data$gc))
 data$gcnratio=data$nratio-bias
-data$probe <- stringr::str_remove(data$name, "_[a-z]+")
+#data$probe <- stringr::str_remove(data$name, "_[a-z]+")
+
+#write data for webserver display
+deletions <- data %>%
+  select(name, chrom, start, end, gcnratio) %>%
+  separate_rows(name, sep = "\\|") %>%
+  filter(str_detect(name, "_mut_")) %>%
+  mutate(gene = str_remove(name, "_mut")) %>%
+  separate(gene, into = c("gene", "probe_no"), sep = "_") %>%
+  filter(gcnratio <= -0.5) %>%
+  group_by(gene) %>%
+  summarise(exons_deleted = toString(probe_no)) %>%
+  ungroup()
+
+amplifications <- data %>%
+  select(name, chrom, start, end, gcnratio) %>%
+  separate_rows(name, sep = "\\|") %>%
+  filter(str_detect(name, "_mut_")) %>%
+  mutate(gene = str_remove(name, "_mut")) %>%
+  separate(gene, into = c("gene", "probe_no"), sep = "_") %>%
+  filter(gcnratio >= 1) %>%
+  group_by(gene) %>%
+  summarise(exons_amplified = toString(probe_no)) %>%
+  ungroup()
+
+genes <- data %>%
+  select(name) %>%
+  separate_rows(name, sep = "\\|") %>%
+  filter(str_detect(name, "_mut_")) %>%
+  separate(name, into = c("gene", "probe_no"), sep = "_mut")
+
 write.table(data[,c(1:4,13)], outputfile, quote=F, sep=',', row.names=F)
 
 
@@ -117,10 +147,10 @@ df.plot$scale.seg.mean <- ifelse(df.plot$seg.mean >= 4, 4, df.plot$seg.mean)
 
 
 #plot!
-g <- ggplot(df.plot, aes(x = num.mark, y = scale, text = paste0(df.plot$probe,
+g <- ggplot(df.plot, aes(x = num.mark, y = scale, text = paste0(df.plot$name,
                                                                 '<br>', df.plot$seqnames,
                                                                 '<br>log2 ratio: ', as.numeric(round(gcnratio, 3)),
-								'<br>Segmented mean: ', as.numeric(round(seg.mean, 3))))) +
+								                                                '<br>Segmented mean: ', as.numeric(round(seg.mean, 3))))) +
   geom_hline(yintercept = c(-1, 0, 1), colour = c("darkgrey", "lightgrey", "darkgrey"), linetype = c("longdash", "solid", "longdash")) +
   geom_point(colour = df.plot$colours, size = 0.8, show.legend = F) +
   scale_y_continuous(breaks = seq(-4,4,2), limits = c(-4,4), labels = c("Min", -2, 0, 2, "Max")) +
