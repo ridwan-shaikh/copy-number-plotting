@@ -52,7 +52,7 @@ outputhtml=paste('/', cnvdir, '/', sampid, '.cnv.html', sep='')
 
 sampid <- "2000520-2076608-T"
 tumour_file <-"2000520-2076608-T.qc.coverage"
-ref_file<-"RMH200.male.cnv.ref"
+ref_file<-"RMH200.ref.csv"
 
 
 tumour_depth=read.table(tumour_file,header=T,sep='\t', stringsAsFactors =F, check.names=F, na.strings = "NA")
@@ -97,11 +97,13 @@ genes <- data %>%
   select(name) %>%
   separate_rows(name, sep = "\\|") %>%
   filter(str_detect(name, "_mut_")) %>%
-  separate(name, into = c("gene", "probe_no"), sep = "_mut")
+  separate(name, into = c("gene", "probe_no"), sep = "_mut") %>%
+  distinct(gene)
 
-write.table(data[,c(1:4,13)], outputfile, quote=F, sep=',', row.names=F)
-
-
+genes %>%
+  left_join(amplifications, "gene") %>%
+  left_join(deletions, "gene") %>%
+  write.table(paste0(sampid, ".cnv.csv"), quote = F, sep = "\t", row.names = F)
 
 #Use DNAcopy to segment the log2 ratios
 DNAcopy.obj <- DNAcopy::CNA(cbind(data$gcnratio), data$chrom, data$start, data.type = "logratio")
