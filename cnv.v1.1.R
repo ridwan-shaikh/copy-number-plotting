@@ -18,7 +18,6 @@ updated by Lina 19/10/2019
 
 library(optparse)
 library(DNAcopy)
-library(dplyr)
 library(affy)
 library(GenomicRanges)
 library(gtools)
@@ -50,9 +49,9 @@ outputfile=paste('/', cnvdir, '/', sampid, '.cnv.csv', sep='')
 outputhtml=paste('/', cnvdir, '/', sampid, '.cnv.html', sep='')
 
 
-sampid <- "2000520-2076608-T"
-tumour_file <-"2000520-2076608-T.qc.coverage"
-ref_file<-"RMH200.ref.csv"
+#sampid <- "2000520-2076608-T"
+#tumour_file <-"2000520-2076608-T.qc.coverage"
+#ref_file<-"RMH200.male.cnv.ref"
 
 
 tumour_depth=read.table(tumour_file,header=T,sep='\t', stringsAsFactors =F, check.names=F, na.strings = "NA")
@@ -78,6 +77,7 @@ deletions <- data %>%
   mutate(gene = str_remove(name, "_mut")) %>%
   separate(gene, into = c("gene", "probe_no"), sep = "_") %>%
   filter(gcnratio <= -0.5) %>%
+  arrange(as.numeric(probe_no)) %>%
   group_by(gene) %>%
   summarise(exons_deleted = toString(probe_no)) %>%
   ungroup()
@@ -89,6 +89,7 @@ amplifications <- data %>%
   mutate(gene = str_remove(name, "_mut")) %>%
   separate(gene, into = c("gene", "probe_no"), sep = "_") %>%
   filter(gcnratio >= 1) %>%
+  arrange(as.integer(probe_no)) %>%
   group_by(gene) %>%
   summarise(exons_amplified = toString(probe_no)) %>%
   ungroup()
@@ -101,9 +102,11 @@ genes <- data %>%
   distinct(gene)
 
 genes %>%
-  left_join(amplifications, "gene") %>%
   left_join(deletions, "gene") %>%
-  write.table(paste0(sampid, ".cnv.csv"), quote = F, sep = "\t", row.names = F)
+  left_join(amplifications, "gene") %>%
+  arrange(gene) %>%
+  rename(GENE = gene, DELEXON = exons_deleted, AMPEXON = exons_amplified) %>%
+  write.table(paste0(sampid, ".cnv.tsv"), quote = F, sep = "\t", row.names = F)
 
 #Use DNAcopy to segment the log2 ratios
 DNAcopy.obj <- DNAcopy::CNA(cbind(data$gcnratio), data$chrom, data$start, data.type = "logratio")
