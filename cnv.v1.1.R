@@ -45,13 +45,13 @@ sampid <- opt$id
 tumour_file <- opt$samplecoverage
 ref_file <- opt$refcoverage
 cnvdir <-opt$cnvdir
-outputfile=paste('/', cnvdir, '/', sampid, '.cnv.csv', sep='')
+outputfile=paste('/', cnvdir, '/', sampid, '.cnv.tsv', sep='')
 outputhtml=paste('/', cnvdir, '/', sampid, '.cnv.html', sep='')
 
 
-#sampid <- "2000520-2076608-T"
-#tumour_file <-"2000520-2076608-T.qc.coverage"
-#ref_file<-"RMH200.male.cnv.ref"
+sampid <- "2000520-2076608-T"
+tumour_file <-"2000520-2076608-T.qc.coverage"
+ref_file<-"RMH200.male.cnv.ref"
 
 
 tumour_depth=read.table(tumour_file,header=T,sep='\t', stringsAsFactors =F, check.names=F, na.strings = "NA")
@@ -106,7 +106,7 @@ genes %>%
   left_join(amplifications, "gene") %>%
   arrange(gene) %>%
   rename(GENE = gene, DELEXON = exons_deleted, AMPEXON = exons_amplified) %>%
-  write.table(paste0(sampid, ".cnv.tsv"), quote = F, sep = "\t", row.names = F)
+  write.table(outputfile, quote = F, sep = "\t", row.names = F)
 
 #Use DNAcopy to segment the log2 ratios
 DNAcopy.obj <- DNAcopy::CNA(cbind(data$gcnratio), data$chrom, data$start, data.type = "logratio")
@@ -115,7 +115,6 @@ DNAcopy.obj.seg <- DNAcopy::segment(DNAcopy.obj)
 #retrieve the segmentation values as a dataframe and drop 1st column of sampleID
 df.DNAcopy.seg <- base::as.data.frame(DNAcopy.obj.seg$output)
 df.DNAcopy.seg$ID <- NULL
-write.table(df.DNAcopy.seg, paste0(outputfile, ".seg"), quote=F, sep="\t", row.names=F)
 
 #covert the input file into a genomicranges object and sort to ensure it is in the correct order
 gr.input <- GRanges(data)
@@ -126,6 +125,47 @@ gr.input <- sort(gr.input)
 gr.DNAcopy.seg <- GRanges(df.DNAcopy.seg)
 gr.DNAcopy.seg <- sortSeqlevels(gr.DNAcopy.seg)
 gr.DNAcopy.seg <- sort(gr.DNAcopy.seg)
+
+#annotate segmentation data with cytobands and output for webserver display
+
+#read in cytoband bedfile
+cytobands <- read.delim("/mnt/scratch/DMP/DUDMP/TRANSGEN/transgen-mdx/ngs/7.resources/hg19/bedfiles/cytoband.bed")
+
+#covert to GenomicRanges object
+gr.cytobands <- GRanges(cytobands)
+
+#find overlaps between the segmentation data and the cytoband information
+overlaps <- findOverlaps(gr.DNAcopy.seg, gr.cytobands)
+gr.cytobands.overlaps <- gr.DNAcopy.seg[queryHits(overlaps)]
+mcols(gr.cytobands.overlaps) <- cbind.data.frame(
+  mcols(gr.cytobands.overlaps),
+  mcols(gr.cytobands[subjectHits(overlaps)])
+)
+
+#covert to dataframe
+df.cytobands.overlaps <- as.data.frame(gr.cytobands.overlaps)
+
+#collapse the cytoband information into a range
+group.cytobands <- df.cytobands.overlaps %>%
+  group_by(seqnames, start, end, num.mark, seg.mean) %>%
+  summarise(cytobands = toString(name)) %>%
+  ungroup()
+group.cytobands$cytoband1 <- as.character(lapply(strsplit(as.character(group.cytobands$cytobands), split = ","), "[", 1))
+group.cytobands$cytoband2 <- as.character(lapply(strsplit(as.character(group.cytobands$cytobands), split = ","), tail, n=1))
+group.cytobands$cytoband2 <- trimws(group.cytobands$cytoband2, which = "left")
+group.cytobands$cytoband <- ifelse(
+  as.character(group.cytobands$cytoband1) == as.character(group.cytobands$cytoband2),
+  paste0(group.cytobands$cytoband1), ifelse(
+    as.character(group.cytobands$cytoband1) < as.character(group.cytobands$cytoband2),
+    paste0(group.cytobands$cytoband1, "-", group.cytobands$cytoband2),
+    paste0(group.cytobands$cytoband2, "-", group.cytobands$cytoband1)
+  ))
+
+#write the annotated segmentation data
+group.cytobands %>%
+  select(seqnames, start, end, cytoband, num.mark, seg.mean) %>%
+  rename("Chromsome" = seqnames, "Start" = start, "End" = end, "Number_of_Probes" = num.mark, "Segmentation_Mean" = seg.mean) %>%
+  write.table(paste0(outputfile, ".seg"), row.names = F, quote = F)
 
 #intersect the segmentation and input file to get a segmented mean value per probe
 overlaps <- findOverlaps(gr.input, gr.DNAcopy.seg)
